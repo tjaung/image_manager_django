@@ -21,6 +21,7 @@ from . import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     re_path('auth/', include("authentication.urls")),
+    path('', include('files.urls'))
     # re_path('signup', include("authentication.urls.signup")),
     # re_path('test_token', include("authentication.urls.test_token")),
 ]
