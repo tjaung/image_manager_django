@@ -42,40 +42,77 @@ class TestFolderViews(APITestCase):
         self.client.force_authenticate(user=self.user)
 
         # ✅ Assign `self.user` directly instead of `owner_id`
-        self.root_folder = Folder.objects.create(
-            name="Projects",
-            owner_id=self.user,  # ✅ Ensure correct field name (`owner`, not `owner_id`)
-        )
+        # self.root_folder = Folder.objects.create(
+        #     name="Projects",
+        #     owner_id=self.user,  # ✅ Ensure correct field name (`owner`, not `owner_id`)
+        # )
 
-        self.folder_path = "Projects/Django"  # ✅ Example folder path inside "Projects"
+        self.folder_path = ""
         
         # ✅ Convert UUID to string before passing to `reverse()`
-        self.create_folder_url = reverse(
-            "folder_create",
-            kwargs={"user_id": str(self.user.id), "folder_path": self.folder_path}  # ✅ Convert UUID to string
-        )
-        print(self.create_folder_url)
+        # self.create_folder_url = reverse(
+        #     "folder_create",
+        #     kwargs={"user_id": str(self.user.id), "folder_path": self.folder_path}  # ✅ Convert UUID to string
+        # )
+        # print(self.create_folder_url)
 
 
 
     def test_create_folder_successfully(self):
         """✅ Test if a logged-in user can create a folder inside a path."""
         folder_data = {"name": "Django"}
-
-        res = self.client.post(self.create_folder_url, folder_data, format="json")
+        create_folder_url = reverse(
+            "folder_create_root",
+            kwargs={"user_id": str(self.user.id)}  # Convert UUID to string
+        )
+        # create root folder Django
+        res = self.client.post(create_folder_url, folder_data, format="json")
         # pdb.set_trace()
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         self.assertIn("name", res.json())  # Ensure response includes folder name
-        # pdb.set_trace()
         self.assertEqual(res.json()["name"], "Django")
-        # pdb.set_trace()
         self.assertIn("path", res.json())  # ✅ Ensure response includes folder path
-        # pdb.set_trace()
-        self.assertEqual(res.json()["path"], "/Projects/Django")  # ✅ Check correct path
-        # pdb.set_trace()
+        self.assertEqual(res.json()["path"], "/Django")  # Check correct path
 
-    def test_create_folder_without_name(self):
-        """✅ Test that creating a folder without a name fails."""
-        res = self.client.post(self.create_folder_url, {}, format="json")
+        subfolder_name = "Django"
+        subfolder_url = reverse(
+            "folder_create", kwargs={"user_id": str(self.user.id), "folder_path": subfolder_name}
+        )
+        subfolder_data = {"name": "src"}  # Only "src", because "Django" is already in the URL
+        
+        res = self.client.post(subfolder_url, subfolder_data, format="json")
         # pdb.set_trace()
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertIn("name", res.json())  # Ensure response includes folder name
+        self.assertEqual(res.json()["name"], "src")
+        self.assertIn("path", res.json())  # Ensure response includes folder path
+        self.assertEqual(res.json()["path"], "/Django/src")  # check correct path
+
+        # test the list of folders
+        root_url = reverse(
+            "folder_contents_root", kwargs={"user_id": str(self.user.id)}
+        )
+        res = self.client.get(root_url, format="json")
+        # pdb.set_trace()
+        self.assertIn("created_at", res.json()["folders"][0])
+        self.assertEqual(res.json()["folders"][0]["name"], "Django")
+        self.assertEqual(res.json()["folders"][0]["path"], "/Django")
+        self.assertEqual(res.json()["folders"][0]["parent_folder"], None)
+        
+
+        subroot_url = reverse(
+            "folder_contents", kwargs={"user_id": str(self.user.id), "folder_path": "Django"}
+        )
+        res = self.client.get(subroot_url, format="json")
+        # pdb.set_trace()
+        # self.assertEqual(res.json(), {'folders': [{'id': 'a8c985ae-f05f-49fa-83a0-05ef080dd5aa', 'name': 'Django', 'path': '/Django', 'created_at': '2025-03-11T18:51:44.929928Z', 'owner_id': 'e4e67026-7ed8-4e7a-8dbc-8e4abf9f0392', 'parent_folder': None}], 'files': []})
+    def test_create_folder_without_name(self):
+        """Test that creating a folder without a name fails."""
+        folder_data = {"name": ""}
+        create_folder_url = reverse(
+            "folder_create_root",
+            kwargs={"user_id": str(self.user.id)}  # Convert UUID to string
+        )
+        # create root folder Django
+        res = self.client.post(create_folder_url, folder_data, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)

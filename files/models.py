@@ -3,24 +3,9 @@ from django.contrib.auth.models import AbstractUser
 import uuid
 
 # Create your models here.
-from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.db import models
 
 from authentication.models import User
-# class User(AbstractUser):
-#     """Custom User model that extends Django's AbstractUser"""
-    
-#     groups = models.ManyToManyField(
-#         Group,
-#         related_name="files_users",
-#         blank=True
-#     )
-
-#     user_permissions = models.ManyToManyField(
-#         Permission,
-#         related_name="files_user_permissions",
-#         blank=True
-#     )
 
 
 class Folder(models.Model):
@@ -57,8 +42,8 @@ class File(models.Model):
     path = models.CharField(max_length=1024, unique=True)
     width = models.IntegerField()
     height = models.IntegerField()
-    size = models.IntegerField()
-    is_color = models.BooleanField()
+    filesize = models.IntegerField()
+    is_grayscale = models.BooleanField()
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
@@ -73,3 +58,12 @@ class File(models.Model):
 
     def __str__(self):
         return self.path
+
+class UploadImage(models.Model):
+    image = models.ImageField(upload_to="uploads/")
+    # uploaded_at = models.DateTimeField(auto_now_add=True)
+    # folder = models.ForeignKey(Folder, on_delete=models.CASCADE, null=True, blank=True)  # ✅ Associate with Folder
+    # # owner = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"Image {self.image.name} in {self.folder.path if self.folder else 'No Folder'}"
