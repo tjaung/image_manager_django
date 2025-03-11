@@ -39,6 +39,9 @@ class TestSetup(APITestCase):
             "password": self.user_data["password"]
         }
 
+        # Automatically authenticate all requests
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token.key}")
+
         return super().setUp()
     
     def tearDown(self):

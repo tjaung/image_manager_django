@@ -1,7 +1,7 @@
 POST http://127.0.0.1:8000/auth/signup 
 Content-Type: application/json
 
-{ "username": "test", "password": "Pass1234!", "email": "test@mail.com" }
+{ "username": "test", "password": "Pass1234!" }
 
 ###
 
@@ -10,8 +10,42 @@ Content-Type: application/json
 
 { "username": "test", "password": "Pass1234!" }
 
+
 ###
 
 GET http://127.0.0.1:8000/auth/test_token 
 Content-Type: application/json
-Authorization: Token 3a23bd4ef68034cfd74bb1c87f3c189a15b76bf9
+Authorization: Token ab7699e1d998db67b44c9ffda55b6174455fc41f
+
+### Create new folder in root
+
+POST http://127.0.0.1:8000/c656359c-58e4-44f2-a73e-d5b5ac7720bd/folders/create/
+Content-Type: application/json
+Authorization: Token ab7699e1d998db67b44c9ffda55b6174455fc41f
+
+{"name": "test"}
+
+### Create new folder in sub dir
+POST http://127.0.0.1:8000/c656359c-58e4-44f2-a73e-d5b5ac7720bd/folders/create/
+Content-Type: application/json
+Authorization: Token ab7699e1d998db67b44c9ffda55b6174455fc41f
+
+{"name": "test/Django"}
+
+### Get all users folders in root
+
+GET http://127.0.0.1:8000/c656359c-58e4-44f2-a73e-d5b5ac7720bd/folders
+Content-Type: application/json
+Authorization: Token ab7699e1d998db67b44c9ffda55b6174455fc41f
+
+### Get all folders in sub dir
+GET http://127.0.0.1:8000/c656359c-58e4-44f2-a73e-d5b5ac7720bd/folders/test
+Content-Type: application/json
+Authorization: Token ab7699e1d998db67b44c9ffda55b6174455fc41f
+
+### Upload an image
+
+POST http://127.0.0.1:8000/c656359c-58e4-44f2-a73e-d5b5ac7720bd/<uuid:user_id>/folders/<path:folder_path>/upload/
+Content-Type: application/json
+Authorization: Token ab7699e1d998db67b44c9ffda55b6174455fc41f
+

@@ -17,10 +17,18 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, re_path, include
 from . import views
+from django.conf.urls.static import static
+from django.conf import settings
+from files.models import UploadImage
+
+# admin.site.register(UploadImage)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     re_path('auth/', include("authentication.urls")),
+    path('', include('files.urls'))
     # re_path('signup', include("authentication.urls.signup")),
     # re_path('test_token', include("authentication.urls.test_token")),
-]
+] 
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
