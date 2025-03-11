@@ -6,20 +6,21 @@ import uuid
 from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.db import models
 
-class User(AbstractUser):
-    """Custom User model that extends Django's AbstractUser"""
+from authentication.models import User
+# class User(AbstractUser):
+#     """Custom User model that extends Django's AbstractUser"""
     
-    groups = models.ManyToManyField(
-        Group,
-        related_name="files_users",
-        blank=True
-    )
+#     groups = models.ManyToManyField(
+#         Group,
+#         related_name="files_users",
+#         blank=True
+#     )
 
-    user_permissions = models.ManyToManyField(
-        Permission,
-        related_name="files_user_permissions",
-        blank=True
-    )
+#     user_permissions = models.ManyToManyField(
+#         Permission,
+#         related_name="files_user_permissions",
+#         blank=True
+#     )
 
 
 class Folder(models.Model):
