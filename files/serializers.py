@@ -6,6 +6,7 @@ class FolderSerializer(serializers.ModelSerializer):
     class Meta(object):
         model = Folder
         fields = "__all__"
+        read_only_fields = ('path', 'owner_id',)
 
 class FileSerializer(serializers.ModelSerializer):
     class Meta(object):

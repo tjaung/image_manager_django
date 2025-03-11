@@ -26,25 +26,54 @@ class FolderContentsView(ListAPIView):
             "files": FileSerializer(files, many=True).data
         })
 
+from rest_framework.generics import CreateAPIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+from django.shortcuts import get_object_or_404
+from .models import Folder
+from .serializers import FolderSerializer
+
 class FolderCreateView(CreateAPIView):
-    """Create a folder inside a given path"""
     serializer_class = FolderSerializer
     permission_classes = [IsAuthenticated]
 
-    def create_folder(self, serializer):
-        """
-        Ensure folder is created in the correct directory
-        """
-        user = self.request.user
-        parent_path = self.kwargs.get('folder_path', '')
+    def post(self, request, *args, **kwargs):
+        # Validate the incoming data
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+        folder_path = self.kwargs.get('folder_path', '')
+
         parent_folder = None
+        new_folder_name = None
 
-        if parent_path:  # if creating inside a subfolder
-            parent_folder = get_object_or_404(Folder, owner_id=user, path=f"/{parent_path}")
+        if folder_path:
+            # If folder_path contains a slash, split it into parent and new folder name.
+            if '/' in folder_path:
+                parent_folder_path, new_folder_name = folder_path.rsplit('/', 1)
+                # Look up the parent folder by its path.
+                parent_folder = get_object_or_404(Folder, owner_id=user, path=f"/{parent_folder_path}")
+            else:
+                # If there's no slash, then there is no parent folder.
+                new_folder_name = folder_path
 
-        new_folder = serializer.save(owner_id=user, parent_folder=parent_folder)
-        new_folder.path = f"{parent_folder.path}/{new_folder.name}" if parent_folder else f"/{new_folder.name}"
-        new_folder.save()
+        # Optionally, you could allow POST data to override the folder name.
+        # For now we enforce the name from the URL:
+        # Create the new folder by saving the serializer with additional fields.
+        folder = serializer.save(owner_id=user, parent_folder=parent_folder, name=new_folder_name)
+
+        # Construct the full path based on whether there's a parent folder.
+        if parent_folder:
+            folder.path = f"{parent_folder.path}/{new_folder_name}"
+        else:
+            folder.path = f"/{new_folder_name}"
+        folder.save()
+
+        # Re-serialize to include updated fields like the newly set path.
+        response_serializer = self.get_serializer(folder)
+        headers = self.get_success_headers(response_serializer.data)
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 from rest_framework.parsers import MultiPartParser
 
