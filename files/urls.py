@@ -6,9 +6,10 @@ from .views import (
 
 urlpatterns = [
     # List folder contents
-    path('<uuid:user_id>/folders/<path:folder_path>/', FolderContentsView.as_view(), name="folder_contents"),
-    # Create a folder
     path('<uuid:user_id>/folders/<path:folder_path>/create/', FolderCreateView.as_view(), name="folder_create"),
+    # List folder contents (more general)
+    path('<uuid:user_id>/folders/<path:folder_path>/', FolderContentsView.as_view(), name="folder_contents"),
+    
     # Upload a file
     path('<uuid:user_id>/files/<path:folder_path>/upload/', FileUploadView.as_view(), name="file_upload"),
     # Move/Rename files & folders

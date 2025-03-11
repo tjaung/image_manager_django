@@ -39,11 +39,8 @@ class TestSetup(APITestCase):
             "password": self.user_data["password"]
         }
 
-        self.token = Token.objects.create(user=self.user)
-
         # Automatically authenticate all requests
         self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token.key}")
-
 
         return super().setUp()
     
