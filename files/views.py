@@ -9,7 +9,7 @@ from django.utils.decorators import method_decorator
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import viewsets
-from rest_framework.generics import ListCreateAPIView
+from rest_framework.generics import ListCreateAPIView, DestroyAPIView
 
 
 
@@ -156,34 +156,32 @@ class MoveRenameView(APIView):
 
         return Response({"message": f"{item_type} moved successfully", "new_path": item.path}, status=status.HTTP_200_OK)
 
-class TrashView(APIView):
+class FolderDeleteView(DestroyAPIView):
     """
-    Soft-delete a file or folder (move to trash)
+    Permanently delete a folder (and optionally handle sub-items).
     """
+    serializer_class = FolderSerializer
     permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
 
-    def delete(self, request, user_id):
-        """
-        Move file or folder to trash
-        """
-        item_type = request.data.get('type')  # "folder" or "file"
-        path = request.data.get('path')
+    def get_object(self):
+        user = self.request.user
+        folder_path = self.kwargs.get('folder_path', None)
 
-        if not path:
-            return Response({"error": "Path is required"}, status=status.HTTP_400_BAD_REQUEST)
-
-        if item_type == "folder":
-            item = get_object_or_404(Folder, owner_id=user_id, path=path)
-        elif item_type == "file":
-            item = get_object_or_404(Image, owner_id=user_id, path=path)
+        # Construct full path (leading slash). E.g. folder_path="Documents"
+        # => full_path="/Documents"
+        if folder_path:
+            full_path = f"/{folder_path}"
         else:
-            return Response({"error": "Invalid type. Must be 'folder' or 'file'"}, status=status.HTTP_400_BAD_REQUEST)
+            full_path = "/"  # or handle root differently
 
-        item.path = f"/trash{item.path}"  # Move to trash
-        item.save()
+        folder = get_object_or_404(Folder, owner_id=user, path=full_path)
+        return folder
 
-        return Response({"message": f"{item_type} moved to trash"}, status=status.HTTP_200_OK)
-
+    def destroy(self, request, *args, **kwargs):
+        folder = self.get_object()
+        folder.delete()  # This permanently removes the folder from the DB
+        return Response({"message": "Folder deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
 
 class RestoreView(APIView):
     """
@@ -223,8 +221,10 @@ class ImageUploadAPIview(ListCreateAPIView):
 
     def post(self, request, user_id, folder_path=None):
         print("BEGIN POST")
-        if "media" not in request.FILES:
-            return Response({"error": "No image file provided."}, status=status.HTTP_400_BAD_REQUEST)
+        print(request)
+        print(request.FILES)
+        # if "media" not in request.FILES:
+        #     return Response({"error": "No image file provided."}, status=status.HTTP_400_BAD_REQUEST)
 
         # make sure folder exists
         folder = None
@@ -242,32 +242,39 @@ class ImageUploadAPIview(ListCreateAPIView):
             
         # begin image upload
         print("BEGIN IMAGE UPLOAD")
-        print(request.FILES.get("media"))
-        imgData = analyzeFile(request.FILES.get("media"))
-        print(imgData)
-        serializer = FileSerializer(
-            data = {
-                "file": request.FILES.get("media"),
-                "folder": folder.id,
-                "path": full_path,
-                "height": imgData["height"],
-                "width": imgData["width"],
-                "filesize": imgData['file_size'],
-                "is_grayscale": imgData["is_grayscale"],
-                "owner_id": user_id,
-            },
-            context={"request": request},
-        )
-        if serializer.is_valid():
-            print("VALID SERIALIZER")
-            serializer.save()
-            return Response(
-                {
-                    "message": "Image uploaded successfully",
-                    "data": serializer.data,
+        uploaded_file = request.FILES.get('file')
+        if uploaded_file and uploaded_file.content_type.startswith('image/'):
+            # Load the image from the InMemoryUploadedFile
+        
+            imgData = analyzeFile(uploaded_file)
+            print("Image data: ", imgData)
+            print("full path", full_path)
+            print("folder.id: ", folder.id)
+            
+            serializer = FileSerializer(
+                data = {
+                    "file": uploaded_file,
+                    "folder": folder.id,
+                    "path": full_path,
+                    "height": imgData["height"],
+                    "width": imgData["width"],
+                    "filesize": imgData['file_size'],
+                    "is_grayscale": imgData["is_grayscale"],
+                    "owner_id": user_id,
                 },
-                status=status.HTTP_201_CREATED
+                context={"request": request},
             )
+            print("SERIALIZER STEP")
+            if serializer.is_valid():
+                print("VALID SERIALIZER")
+                serializer.save()
+                return Response(
+                    {
+                        "message": "Image uploaded successfully",
+                        "data": serializer.data,
+                    },
+                    status=status.HTTP_201_CREATED
+                )
         else:
             return Response(
                 {

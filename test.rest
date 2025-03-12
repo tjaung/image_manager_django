@@ -1,9 +1,11 @@
+### Signup test
+
 POST http://127.0.0.1:8000/auth/signup 
 Content-Type: application/json
 
 { "username": "test", "password": "Pass1234!" }
 
-###
+### Login test
 
 POST http://127.0.0.1:8000/auth/login 
 Content-Type: application/json
@@ -11,24 +13,24 @@ Content-Type: application/json
 { "username": "test", "password": "Pass1234!" }
 
 
-###
+### validate token test
 
 GET http://127.0.0.1:8000/auth/test_token 
 Content-Type: application/json
-Authorization: Token ab7699e1d998db67b44c9ffda55b6174455fc41f
+Authorization: Token 365d8544c980d7db5c54b68f9c1bc245ef702d2f
 
 ### Create new folder in root
 
 POST http://127.0.0.1:8000/c656359c-58e4-44f2-a73e-d5b5ac7720bd/folders/create/
 Content-Type: application/json
-Authorization: Token ab7699e1d998db67b44c9ffda55b6174455fc41f
+Authorization: Token 365d8544c980d7db5c54b68f9c1bc245ef702d2f
 
 {"name": "test"}
 
 ### Create new folder in sub dir
 POST http://127.0.0.1:8000/c656359c-58e4-44f2-a73e-d5b5ac7720bd/folders/create/
 Content-Type: application/json
-Authorization: Token ab7699e1d998db67b44c9ffda55b6174455fc41f
+Authorization: Token 365d8544c980d7db5c54b68f9c1bc245ef702d2f
 
 {"name": "test/Django"}
 
@@ -36,16 +38,16 @@ Authorization: Token ab7699e1d998db67b44c9ffda55b6174455fc41f
 
 GET http://127.0.0.1:8000/c656359c-58e4-44f2-a73e-d5b5ac7720bd/folders
 Content-Type: application/json
-Authorization: Token ab7699e1d998db67b44c9ffda55b6174455fc41f
+Authorization: Token 365d8544c980d7db5c54b68f9c1bc245ef702d2f
 
 ### Get all folders in sub dir
 GET http://127.0.0.1:8000/c656359c-58e4-44f2-a73e-d5b5ac7720bd/folders/test
 Content-Type: application/json
-Authorization: Token ab7699e1d998db67b44c9ffda55b6174455fc41f
+Authorization: Token 365d8544c980d7db5c54b68f9c1bc245ef702d2f
 
 ### Upload an image
 
 POST http://127.0.0.1:8000/c656359c-58e4-44f2-a73e-d5b5ac7720bd/<uuid:user_id>/folders/<path:folder_path>/upload/
 Content-Type: application/json
-Authorization: Token ab7699e1d998db67b44c9ffda55b6174455fc41f
+Authorization: Token 365d8544c980d7db5c54b68f9c1bc245ef702d2f
 

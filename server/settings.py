@@ -17,7 +17,7 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Actual directory user files go to
-MEDIA_ROOT = os.path.join(os.path.dirname(BASE_DIR), 'mediafiles')
+MEDIA_ROOT = os.path.join(os.path.dirname(BASE_DIR), 'media/')
 
 # URL used to access the media
 MEDIA_URL = '/media/'
@@ -32,6 +32,13 @@ SECRET_KEY = 'django-insecure-&$-l=@t%ejwa^9m%w8@ljc*0n1k&3loqq6fwm($#z_6kmei&ij
 DEBUG = True
 
 CORS_ORIGIN_ALLOW_ALL=True
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8080",
+]
+
 ALLOWED_HOSTS = ['127.0.0.1']
 AUTH_USER_MODEL = 'authentication.User'
 
@@ -47,6 +54,7 @@ INSTALLED_APPS = [
     'django_extensions',
     'rest_framework',
     'rest_framework.authtoken',
+    'rest_framework_simplejwt',
     'corsheaders',
     'authentication',
     'files',
@@ -62,6 +70,15 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+REST_AUTH = {
+    'USE_JWT': True,
+    'JWT_AUTH_COOKIE': 'access',
+    'JWT_AUTH_REFESH_COOKIE': 'refresh',
+    'JWT_AUTH_HTTPONLY': False,
+    'SESSION_LOGIN': False,
+    'OLD_PASSWORD_FIELD_ENABLED': True
+}
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [

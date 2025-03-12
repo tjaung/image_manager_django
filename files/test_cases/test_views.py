@@ -100,12 +100,13 @@ class TestFolderViews(APITestCase):
         self.assertEqual(res.json()["folders"][0]["parent_folder"], None)
         
 
-        subroot_url = reverse(
-            "folder_contents", kwargs={"user_id": str(self.user.id), "folder_path": "Django"}
-        )
-        res = self.client.get(subroot_url, format="json")
+        # delete_url = reverse(
+        #     "folder_delete", kwargs={"user_id": str(self.user.id), "folder_path": "Django"}
+        # )
+        # res = self.client.get(delete_url, format="json")
+        # res = self.client.get(root_url, format="json")
         # pdb.set_trace()
-        # self.assertEqual(res.json(), {'folders': [{'id': 'a8c985ae-f05f-49fa-83a0-05ef080dd5aa', 'name': 'Django', 'path': '/Django', 'created_at': '2025-03-11T18:51:44.929928Z', 'owner_id': 'e4e67026-7ed8-4e7a-8dbc-8e4abf9f0392', 'parent_folder': None}], 'files': []})
+
     def test_create_folder_without_name(self):
         """Test that creating a folder without a name fails."""
         folder_data = {"name": ""}
