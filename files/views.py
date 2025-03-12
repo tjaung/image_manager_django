@@ -3,7 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from .models import Folder, File, UploadImage
-from .serializers import FolderSerializer, FileSerializer, UploadImageSerializer
+from .serializers import FolderSerializer, FileSerializer
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from rest_framework.authentication import TokenAuthentication
@@ -36,7 +36,7 @@ class FolderContentsView(ListAPIView):
             folder = get_object_or_404(Folder, owner_id=user, path=full_path)
         else:
             folder = None  # Root level
-
+        print(folder)
         subfolders = Folder.objects.filter(owner_id=user, parent_folder=folder)
         files = File.objects.filter(owner_id=user, folder=folder)
 
@@ -221,8 +221,9 @@ class ImageUploadAPIview(ListCreateAPIView):
 
     def post(self, request, user_id, folder_path=None):
         print("BEGIN POST")
-        print(request)
         print(request.FILES)
+        print(request.FILES.get("file"))
+        print(request.FILES.getlist('file', None))
         # if "media" not in request.FILES:
         #     return Response({"error": "No image file provided."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -231,9 +232,11 @@ class ImageUploadAPIview(ListCreateAPIView):
         if folder_path:
             print("FOLDER PATH ", folder_path)
             full_path = f"/{folder_path.strip('/')}"
-            folder = Folder.objects.filter(owner_id=user_id, path=full_path).first()
+            folder = get_object_or_404(Folder, owner_id=user_id, path=f"/{folder_path.strip('/')}") #Folder.objects.filter(owner_id=user_id, path=full_path).first()
             print("Folder: ", folder)
+            print("parent folder: ", folder.parent_folder)
             print(folder.id)
+            print(folder.name)
             if not folder:
                 return Response(
                     {"error": f"Folder '{folder_path}' does not exist."},
@@ -245,17 +248,18 @@ class ImageUploadAPIview(ListCreateAPIView):
         uploaded_file = request.FILES.get('file')
         if uploaded_file and uploaded_file.content_type.startswith('image/'):
             # Load the image from the InMemoryUploadedFile
-        
+            
             imgData = analyzeFile(uploaded_file)
             print("Image data: ", imgData)
             print("full path", full_path)
-            print("folder.id: ", folder.id)
-            
+            print("folder.id: ", folder)
+
             serializer = FileSerializer(
                 data = {
                     "file": uploaded_file,
                     "folder": folder.id,
                     "path": full_path,
+                    "filename": uploaded_file.name,
                     "height": imgData["height"],
                     "width": imgData["width"],
                     "filesize": imgData['file_size'],
@@ -268,6 +272,7 @@ class ImageUploadAPIview(ListCreateAPIView):
             if serializer.is_valid():
                 print("VALID SERIALIZER")
                 serializer.save()
+                print('serializer saved')
                 return Response(
                     {
                         "message": "Image uploaded successfully",
@@ -275,43 +280,96 @@ class ImageUploadAPIview(ListCreateAPIView):
                     },
                     status=status.HTTP_201_CREATED
                 )
+            else:
+                return Response(
+                    {
+                        "message": serializer.errors,
+                        "data": None,
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
         else:
             return Response(
                 {
-                    "message": serializer.errors,
-                    "data": None,
+                   "message": "No image found" 
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+from django.shortcuts import get_object_or_404
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser
+from .models import File
+from .serializers import FileSerializer
+from rest_framework import status
+from .models import File
+
 class ImageGetAPIview(APIView):
-    authentication_classes = []
-    permission_classes = []
-    parser_classes = [MultiPartParser, FormParser]
-    serializer_class = FileSerializer
+    # authentication_classes = []
+    # permission_classes = []
+    # parser_classes = [MultiPartParser, FormParser]
+    # serializer_class = FileSerializer
 
     def get(self, request, user_id, folder_path, file):
-        print("request: ", request)
-        print("user_id: ", user_id)
-        print("folder path: ", folder_path)
-        print("file: ", file)
-        query = File.objects.filter(owner_id=user_id, path=f"/{folder_path}/{file}")
-        serializer = FileSerializer(query, many=True)
+        # Log received path components to debug
+        file = file.replace("\/", "")
+        full_path = f"/{folder_path}/{file}" if folder_path else f"/{file}"
+        print("Received User ID:", user_id)
+        print("Received Folder Path:", folder_path)
+        print("Received File Name:", file)
+        print("Constructed Full Path:", full_path)
+
+        # Debug: Log the actual paths in the database for this user
+        existing_files = File.objects.filter(owner_id=user_id)
+        print("existing files: ", existing_files)
+        for f in existing_files:
+            print("Database path:", f.path)
+
+        # Fetch the file
+        file_instance = get_object_or_404(File, owner_id=user_id, path=full_path)
+        serializer = FileSerializer(file_instance)
+        print("DONE")
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class FileDeleteView(DestroyAPIView):
+    queryset = File.objects.all()
+    serializer_class = FileSerializer
+    permission_classes = [IsAuthenticated]
+
+    # views.py
+class FileDeleteView(DestroyAPIView):
+    queryset = File.objects.all()
+    serializer_class = FileSerializer
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, *args, **kwargs):
+        file_id = kwargs['file_id']
+        print("DELETING FILE: ", file_id)
+
+        # Directly use file_id to get the file
+        file = get_object_or_404(File, id=file_id, owner_id=request.user.id)
+
+        # Perform deletion
+        file.delete()
+
+        return Response({"message": "File deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
 
 from PIL import Image
 def analyzeFile(file):
     if file == None:
         print("No file specified")
-
+    
     image = Image.open(file)
+    filename = image.filename
     width, height = image.size
     is_grayscale = isGrayscale(image)
     file_size = file.size
-
+    print(f"The file name is {filename}")
     print(f"The image size is: {width}x{height} and file size is {file_size} bytes")
     print(f"The image is grayscale: {is_grayscale}")
     return {
+        'filename':filename,
         'width': width,
         'height': height,
         'file_size': file_size,

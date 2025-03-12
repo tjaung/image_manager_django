@@ -39,7 +39,8 @@ class File(models.Model):
         Folder, null=True, blank=True, related_name='files', on_delete=models.CASCADE
     )
     file = models.FileField(upload_to='uploads/')
-    path = models.CharField(max_length=1024, unique=True)
+    path = models.CharField(max_length=1024)
+    filename = models.CharField(max_length=1024, default='')
     width = models.IntegerField()
     height = models.IntegerField()
     filesize = models.IntegerField()

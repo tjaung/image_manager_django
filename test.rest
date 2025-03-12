@@ -41,7 +41,7 @@ Content-Type: application/json
 Authorization: Token 365d8544c980d7db5c54b68f9c1bc245ef702d2f
 
 ### Get all folders in sub dir
-GET http://127.0.0.1:8000/c656359c-58e4-44f2-a73e-d5b5ac7720bd/folders/test
+GET http://127.0.0.1:8000/c656359c-58e4-44f2-a73e-d5b5ac7720bd/folders/docs
 Content-Type: application/json
 Authorization: Token 365d8544c980d7db5c54b68f9c1bc245ef702d2f
 
@@ -51,3 +51,12 @@ POST http://127.0.0.1:8000/c656359c-58e4-44f2-a73e-d5b5ac7720bd/<uuid:user_id>/f
 Content-Type: application/json
 Authorization: Token 365d8544c980d7db5c54b68f9c1bc245ef702d2f
 
+### Get an image
+
+GET http://127.0.0.1:8000/c656359c-58e4-44f2-a73e-d5b5ac7720bd/folders/docs/vim_error.png/
+Content-Type: application/json
+Authorization: Token 365d8544c980d7db5c54b68f9c1bc245ef702d2f
+
+### Delete an image
+DELETE http://127.0.0.1:8000/93f1f27a-a81b-4a50-864c-66a95bec92cf/folders/docs/f7d92f20-d7bd-41dc-91ac-4be4f9ef34ee/delete/
+Authorization: Token 365d8544c980d7db5c54b68f9c1bc245ef702d2f

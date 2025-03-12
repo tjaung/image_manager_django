@@ -9,15 +9,18 @@ class FolderSerializer(serializers.ModelSerializer):
         read_only_fields = ('path', 'owner_id',)
 
 class FileSerializer(serializers.ModelSerializer):
-    folder = serializers.StringRelatedField()
-    
-    class Meta(object):
-        model = File
-        fields = "__all__"
-        
-class UploadImageSerializer(serializers.ModelSerializer):
-    folder = serializers.StringRelatedField()  # ✅ Show folder path instead of ID
+    # folder = serializers.PrimaryKeyRelatedField(queryset=Folder.objects.all(), allow_null=True, required=False)
 
     class Meta:
-        model = UploadImage
-        fields = ('id', 'image', 'uploaded_at', 'folder')
+        model = File
+        fields = "__all__"
+
+    def create(self, validated_data):
+        return File.objects.create(**validated_data)
+
+    def update(self, instance, validated_data):
+        # Update instance with validated data
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
