@@ -59,12 +59,3 @@ class File(models.Model):
 
     def __str__(self):
         return self.path
-
-class UploadImage(models.Model):
-    image = models.ImageField(upload_to="uploads/")
-    # uploaded_at = models.DateTimeField(auto_now_add=True)
-    # folder = models.ForeignKey(Folder, on_delete=models.CASCADE, null=True, blank=True)  # ✅ Associate with Folder
-    # # owner = models.ForeignKey(User, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return f"Image {self.image.name} in {self.folder.path if self.folder else 'No Folder'}"

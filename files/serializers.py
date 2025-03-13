@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Folder, File, UploadImage
+from .models import Folder, File
 
 class FolderSerializer(serializers.ModelSerializer):
     class Meta(object):
@@ -9,8 +9,6 @@ class FolderSerializer(serializers.ModelSerializer):
         read_only_fields = ('path', 'owner_id',)
 
 class FileSerializer(serializers.ModelSerializer):
-    # folder = serializers.PrimaryKeyRelatedField(queryset=Folder.objects.all(), allow_null=True, required=False)
-
     class Meta:
         model = File
         fields = "__all__"

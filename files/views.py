@@ -1,393 +1,210 @@
-from rest_framework.generics import ListAPIView, CreateAPIView, RetrieveUpdateDestroyAPIView
-from rest_framework.permissions import IsAuthenticated
+# views.py
+from rest_framework import viewsets, status
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import TokenAuthentication, SessionAuthentication
 from django.shortcuts import get_object_or_404
-from .models import Folder, File, UploadImage
+from .models import Folder, File
+from authentication.models import User
 from .serializers import FolderSerializer, FileSerializer
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
-from rest_framework.authentication import TokenAuthentication
-from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework import viewsets
-from rest_framework.generics import ListCreateAPIView, DestroyAPIView
+from rest_framework.decorators import action
+from .utils import analyzeFile
 
-
-
-class FolderContentsView(ListAPIView):
+class FolderViewSet(viewsets.ViewSet):
     """
-    List all folders and files inside a given path.
+    A viewset that handles folder operations.
+    
+    Supported methods:
+      - GET: List folder contents (folders and files) for a given path.
+      - POST: Create a new folder.
+      - PUT/PATCH: Move or rename a folder.
+      - DELETE: Delete a folder.
     """
-    serializer_class = FolderSerializer
     permission_classes = [IsAuthenticated]
-    authentication_classes = [TokenAuthentication]
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
 
-    def get(self, request, user_id, folder_path=None):
+
+    def list(self, request, user_id):
         """
-        Retrieve subfolders and files inside a specific folder.
+        GET: List subfolders and files in the folder specified by the query parameter 'folder_path'.
+        If no folder_path is provided, list items in the root.
         """
-        print("GET FOLDER")
-        print(f"Authenticated User: {request.user}")
-        print(f"User ID from URL: {user_id}")
-        # print(f"Headers: {request.headers}")
-
-        user = request.user  # Get authenticated user
-
+        # pull params
+        user = request.user
+        folder_path = request.query_params.get("folder_path", None)
+        # dynamically grab folders depnding on if its the root level or a sub level
         if folder_path:
             full_path = f"/{folder_path}"
             folder = get_object_or_404(Folder, owner_id=user, path=full_path)
         else:
             folder = None  # Root level
-        print("Getting folder: ", folder)
+
+        # get all the folder contents and return them
         subfolders = Folder.objects.filter(owner_id=user, parent_folder=folder)
         files = File.objects.filter(owner_id=user, folder=folder)
-
         return Response({
             "folders": FolderSerializer(subfolders, many=True).data,
             "files": FileSerializer(files, many=True).data
         })
-    
-# http://127.0.0.1:8000/93f1f27a-a81b-4a50-864c-66a95bec92cf/folders/docs/images/
 
-
-from rest_framework.generics import CreateAPIView
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from rest_framework import status
-from django.shortcuts import get_object_or_404
-from .models import Folder
-from .serializers import FolderSerializer
-
-import os
-
-class FolderCreateView(CreateAPIView):
-    serializer_class = FolderSerializer
-    permission_classes = [IsAuthenticated]
-    authentication_classes = [TokenAuthentication]
-
-    def post(self, request, user_id, folder_path=None, *args, **kwargs):
+    def create(self, request, user_id):
+        """
+        POST: Create a new folder.
+        Optionally, you can pass a query parameter 'folder_path' to specify a parent folder.
+        For example: POST /api/<user_id>/folders/?folder_path=docs/images
+        """
+        # pull params
         user = request.user
-        folder_name = request.data.get("name", None)
-
+        folder_name = request.data.get("name")
+        
         if not folder_name:
             return Response({"error": "Folder name is required."}, status=status.HTTP_400_BAD_REQUEST)
-
-        parent_folder = None  # Default: Root-level folder
+        
+        # Retrieve folder_path from query parameters
+        folder_path = request.query_params.get("folder_path")
+        parent_folder = None
         full_path = f"/{folder_name.strip('/')}"
-
-        # ✅ Find the parent folder if this is a subfolder
+        
         if folder_path:
-            print("folder path: ", folder_path)
-            parent_folder_path = f"/{folder_path.strip('/')}"  # Fix slashes
-            print("parent folder: ", parent_folder_path)
+            parent_folder_path = f"/{folder_path.strip('/')}"
             parent_folder = Folder.objects.filter(owner_id=user, path=parent_folder_path).first()
-
             if not parent_folder:
                 return Response(
                     {"error": f"Parent folder '{folder_path}' does not exist."},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-
             full_path = f"{parent_folder.path}/{folder_name.strip('/')}"
-            print('parent folder: ', parent_folder)
-        # else:
-        #     full_path = f"/{folder_name.strip('/')}"
-
-        # ✅ Create the new folder
+        
         folder, created = Folder.objects.get_or_create(
             owner_id=user,
             name=folder_name.strip('/'),
             path=full_path,
             parent_folder=parent_folder
         )
-
         return Response(FolderSerializer(folder).data, status=status.HTTP_201_CREATED)
 
-
-    
-from rest_framework.parsers import MultiPartParser
-
-class FileUploadView(CreateAPIView):
-    """
-    Upload a file inside a specific folder
-    """
-    serializer_class = FileSerializer
-    permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser]  # allows file uploads
-
-    def upload_file(self, serializer):
-        user = self.request.user
-        folder_path = self.kwargs.get('folder_path', '')
-        folder = None
-
-        if folder_path:
-            folder = get_object_or_404(Folder, owner_id=user, path=f"/{folder_path}")
-
-        uploaded_file = serializer.save(owner_id=user, folder=folder)
-        uploaded_file.path = f"{folder.path}/{uploaded_file.file.name}" if folder else f"/{uploaded_file.file.name}"
-        uploaded_file.save()
-
-from rest_framework.views import APIView
-from rest_framework import status
-
-class MoveRenameView(APIView):
-    """
-    Move or rename a file or folder
-    """
-    permission_classes = [IsAuthenticated]
-
-    def refactor(self, request, user_id):
+    def update(self, request, user_id, pk=None):
         """
-        Move or rename a folder/file
+        PUT/PATCH: Move or rename a folder.
+        Expects request data to include 'old_path' and 'new_path'.
         """
-        item_type = request.data.get('type')  # "folder" or "file"
+        user = request.user
         old_path = request.data.get('old_path')
         new_path = request.data.get('new_path')
-
         if not old_path or not new_path:
-            return Response({"error": "Both old_path and new_path are required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Both old_path and new_path are required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        folder = get_object_or_404(Folder, owner_id=user, path=old_path)
+        folder.path = new_path
+        folder.name = new_path.split('/')[-1]
+        folder.save()
+        return Response({"message": "Folder moved/renamed successfully", "new_path": folder.path}, status=status.HTTP_200_OK)
 
-        if item_type == "folder":
-            item = get_object_or_404(Folder, owner_id=user_id, path=old_path)
-        elif item_type == "file":
-            item = get_object_or_404(File, owner_id=user_id, path=old_path)
-        else:
-            return Response({"error": "Invalid type. Must be 'folder' or 'file'"}, status=status.HTTP_400_BAD_REQUEST)
-
-        item.path = new_path
-        item.name = new_path.split('/')[-1]  # Extract new folder/file name
-        item.save()
-
-        return Response({"message": f"{item_type} moved successfully", "new_path": item.path}, status=status.HTTP_200_OK)
-
-class FolderDeleteView(DestroyAPIView):
-    """
-    Permanently delete a folder (and optionally handle sub-items).
-    """
-    serializer_class = FolderSerializer
-    permission_classes = [IsAuthenticated]
-    authentication_classes = [TokenAuthentication]
-
-    def get_object(self):
-        user = self.request.user
-        folder_path = self.kwargs.get('folder_path', None)
-
-        # Construct full path (leading slash). E.g. folder_path="Documents"
-        # => full_path="/Documents"
-        if folder_path:
-            full_path = f"/{folder_path}"
-        else:
-            full_path = "/"  # or handle root differently
-
-        folder = get_object_or_404(Folder, owner_id=user, path=full_path)
-        return folder
-
-    def destroy(self, request, *args, **kwargs):
-        folder = self.get_object()
-        folder.delete()  # This permanently removes the folder from the DB
+    def destroy(self, request, user_id, pk=None):
+        user = request.user
+        folder = get_object_or_404(Folder, owner_id=user, pk=pk)
+        folder.delete()
         return Response({"message": "Folder deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
 
-class RestoreView(APIView):
+from rest_framework.parsers import MultiPartParser, FormParser
+
+class FileViewSet(viewsets.ViewSet):
     """
-    Restore a file or folder from trash
+    A viewset that handles file operations.
+    
+    Supported methods:
+      - GET: Retrieve a file’s details.
+      - POST: Upload a file.
+      - PUT/PATCH: Move or rename a file.
+      - DELETE: Delete a file.
     """
     permission_classes = [IsAuthenticated]
-
-    def post(self, request, user_id):
-        """
-        Restore an item from trash
-        """
-        item_type = request.data.get('type')
-        path = request.data.get('path')
-
-        if not path or not path.startswith("/trash"):
-            return Response({"error": "Invalid trash path"}, status=status.HTTP_400_BAD_REQUEST)
-
-        new_path = path.replace("/trash", "")
-
-        if item_type == "folder":
-            item = get_object_or_404(Folder, owner_id=user_id, path=path)
-        elif item_type == "file":
-            item = get_object_or_404(Image, owner_id=user_id, path=path)
-        else:
-            return Response({"error": "Invalid type. Must be 'folder' or 'file'"}, status=status.HTTP_400_BAD_REQUEST)
-
-        item.path = new_path
-        item.save()
-
-        return Response({"message": f"{item_type} restored", "new_path": item.path}, status=status.HTTP_200_OK)
-
-class ImageUploadAPIview(ListCreateAPIView):
-    authentication_classes = []
-    permission_classes = []
+    authentication_classes = [TokenAuthentication]
     parser_classes = [MultiPartParser, FormParser]
-    serializer_class = FileSerializer
 
-    def post(self, request, user_id, folder_path=None):
-        print("BEGIN POST")
-        print(request.FILES)
-        print(request.FILES.get("file"))
-        print(request.FILES.getlist('file', None))
-        # if "media" not in request.FILES:
-        #     return Response({"error": "No image file provided."}, status=status.HTTP_400_BAD_REQUEST)
+    def get(self, request, user_id):
+        """
+        GET: Retrieve a file by its path using query parameters.
+        Expected query parameters:
+        - user_id: Required, uuid
+        - file_id: Required, uuid
+        """
 
-        # make sure folder exists
-        folder = None
-        if folder_path:
-            print("FOLDER PATH ", folder_path)
-            full_path = f"/{folder_path.strip('/')}"
-            folder = get_object_or_404(Folder, owner_id=user_id, path=f"/{folder_path.strip('/')}") #Folder.objects.filter(owner_id=user_id, path=full_path).first()
-            print("Folder: ", folder)
-            print("parent folder: ", folder.parent_folder)
-            print(folder.id)
-            print(folder.name)
-            if not folder:
-                return Response(
-                    {"error": f"Folder '{folder_path}' does not exist."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-        # begin image upload
-        print("BEGIN IMAGE UPLOAD")
-        uploaded_file = request.FILES.get('file')
-        if uploaded_file and uploaded_file.content_type.startswith('image/'):
-            # Load the image from the InMemoryUploadedFile
-            
-            imgData = analyzeFile(uploaded_file)
-            print("Image data: ", imgData)
-            print("full path", full_path)
-            print("folder.id: ", folder)
+        file_id = request.query_params.get("file_id")
+        user_id = request.query_params.get("user_id")
 
-            serializer = FileSerializer(
-                data = {
-                    "file": uploaded_file,
-                    "folder": folder.id,
-                    "path": full_path,
-                    "filename": uploaded_file.name,
-                    "height": imgData["height"],
-                    "width": imgData["width"],
-                    "filesize": imgData['file_size'],
-                    "is_grayscale": imgData["is_grayscale"],
-                    "owner_id": user_id,
-                },
-                context={"request": request},
-            )
-            print("SERIALIZER STEP")
-            if serializer.is_valid():
-                print("VALID SERIALIZER")
-                serializer.save()
-                print('serializer saved')
-                return Response(
-                    {
-                        "message": "Image uploaded successfully",
-                        "data": serializer.data,
-                    },
-                    status=status.HTTP_201_CREATED
-                )
-            else:
-                return Response(
-                    {
-                        "message": serializer.errors,
-                        "data": None,
-                    },
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-        else:
-            return Response(
-                {
-                   "message": "No image found" 
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-from django.shortcuts import get_object_or_404
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.parsers import MultiPartParser, FormParser
-from .models import File
-from .serializers import FileSerializer
-from rest_framework import status
-from .models import File
-
-class ImageGetAPIview(APIView):
-    # authentication_classes = []
-    # permission_classes = []
-    # parser_classes = [MultiPartParser, FormParser]
-    # serializer_class = FileSerializer
-
-    def get(self, request, user_id, folder_path, file):
-        print("IMAGE GET")
-        # Log received path components to debug
-        file = file.replace("\/", "")
-        full_path = f"/{folder_path}/{file}" if folder_path else f"/{file}"
-        print("Received User ID:", user_id)
-        print("Received Folder Path:", folder_path)
-        print("Received File Name:", file)
-        print("Constructed Full Path:", full_path)
-
-        # Debug: Log the actual paths in the database for this user
-        existing_files = File.objects.filter(owner_id=user_id)
-        print("existing files: ", existing_files)
-        for f in existing_files:
-            print("Database path:", f.path)
-
-        # Fetch the file
-        print("fetching instance")
-        file_instance = get_object_or_404(File, owner_id=user_id, path=full_path)
-        print("got instance, getting serializer")
+        if not file_id:
+            return Response({"error": "file_name query parameter is required."}, status=status.HTTP_400_BAD_REQUEST)
+        file_instance = get_object_or_404(File, owner_id=user_id, id=file_id)
         serializer = FileSerializer(file_instance)
-        print("DONE")
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-class FileDeleteView(DestroyAPIView):
-    queryset = File.objects.all()
-    serializer_class = FileSerializer
-    permission_classes = [IsAuthenticated]
+    def create(self, request, user_id, folder_path=None):
+        """
+        POST: Upload a file to the folder specified by `folder_path`.
+        The folder path can be provided as a query parameter if not given in the URL.
+        """
+        user = get_object_or_404(User, id=user_id)
+        # Get folder_path from query parameters
+        folder_path = request.query_params.get("folder_path", folder_path)
 
-    # views.py
-class FileDeleteView(DestroyAPIView):
-    queryset = File.objects.all()
-    serializer_class = FileSerializer
-    permission_classes = [IsAuthenticated]
+        folder = None
+        if folder_path:
+            folder = get_object_or_404(Folder, owner_id=user, path=f"/{folder_path.strip('/')}")
+        # pull image from request
+        uploaded_file = request.FILES.get('file')
+        filename = uploaded_file.name
+        if not uploaded_file:
+            return Response({"error": "No file provided."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Construct the file path: if a folder was found, use its path; otherwise, default to root which is none.
+        file_path = f"{folder.path}/{filename}" if folder else f"/{filename}"
+        imgData = analyzeFile(uploaded_file)
 
-    def delete(self, request, *args, **kwargs):
-        file_id = kwargs['file_id']
-        print("DELETING FILE: ", file_id)
+        # create serializer data for model
+        serializer = FileSerializer(
+            data={
+                "file": uploaded_file,
+                "folder": folder.id if folder else None,
+                "path": file_path,  # Save the constructed file path
+                "filename": filename,
+                "height": imgData["height"],
+                "width": imgData["width"],
+                "filesize": imgData["file_size"],
+                "is_grayscale": imgData["is_grayscale"],
+                "owner_id": user_id,
+            },
+            context={"request": request},
+        )
+        # save
+        if serializer.is_valid():
+            file_obj = serializer.save(owner_id=user, folder=folder)
+            file_obj.path = file_path  # Ensure the file path is set properly
+            file_obj.save()
+            return Response({"message": "File uploaded successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        # Directly use file_id to get the file
-        file = get_object_or_404(File, id=file_id, owner_id=request.user.id)
 
-        # Perform deletion
-        file.delete()
+    def update(self, request, user_id, pk=None):
+        """
+        PUT/PATCH: Move or rename a file.
+        Expects request data to include 'old_path' and 'new_path'.
+        """
+        user = request.user
+        old_path = request.data.get('old_path')
+        new_path = request.data.get('new_path')
+        if not old_path or not new_path:
+            return Response({"error": "Both old_path and new_path are required."}, status=status.HTTP_400_BAD_REQUEST)
+        file_obj = get_object_or_404(File, owner_id=user, path=old_path)
+        file_obj.path = new_path
+        file_obj.name = new_path.split('/')[-1]
+        file_obj.save()
+        return Response({"message": "File moved/renamed successfully", "new_path": file_obj.path}, status=status.HTTP_200_OK)
 
+    def destroy(self, request, user_id, pk=None):
+        """
+        DELETE: Delete a file by its primary key.
+        """
+        file_obj = get_object_or_404(File, id=pk, owner_id=request.user.id)
+        file_obj.delete()
         return Response({"message": "File deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
-
-from PIL import Image
-def analyzeFile(file):
-    if file == None:
-        print("No file specified")
-    
-    image = Image.open(file)
-    filename = image.filename
-    width, height = image.size
-    is_grayscale = isGrayscale(image)
-    file_size = file.size
-    print(f"The file name is {filename}")
-    print(f"The image size is: {width}x{height} and file size is {file_size} bytes")
-    print(f"The image is grayscale: {is_grayscale}")
-    return {
-        'filename':filename,
-        'width': width,
-        'height': height,
-        'file_size': file_size,
-        'is_grayscale': is_grayscale
-    }
-
-def isGrayscale(img):
-    img = img.convert("RGB")
-    w, h = img.size
-    for i in range(w):
-        for j in range(h):
-            r, g, b = img.getpixel((i,j))
-            if r != g != b: 
-                return False
-    return True

@@ -1,17 +1,16 @@
-from django.urls import path
-from .views import (
-    FolderContentsView, FolderCreateView, FileUploadView, FileDeleteView,
-    FolderDeleteView, ImageUploadAPIview, ImageGetAPIview
-)
+# urls.py
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import FolderViewSet, FileViewSet
+
+router = DefaultRouter()
+# folder api routes
+router.register(r'(?P<user_id>[0-9a-f-]+)/folders', FolderViewSet, basename='folder')
+# ex: http://127.0.0.1:8000/api/93f1f27a-a81b-4a50-864c-66a95bec92cf/folders/create/
+
+# file api routes
+router.register(r'(?P<user_id>[0-9a-f-]+)/files', FileViewSet, basename='file')
 
 urlpatterns = [
-    path('<uuid:user_id>/folders/create/', FolderCreateView.as_view(), name="folder_create_root"),
-    path('<uuid:user_id>/folders/<path:folder_path>/create/', FolderCreateView.as_view(), name="folder_create"),
-    path("<uuid:user_id>/folders/delete/", FolderDeleteView.as_view(), name="folder_delete"),
-    path("<uuid:user_id>/folders/<path:folder_path>/delete/", FolderDeleteView.as_view(), name="folder_delete"),
-    path('<uuid:user_id>/folders/<path:folder_path>/upload/', ImageUploadAPIview.as_view(), name="image_upload"),
-    path('<uuid:user_id>/folders/<path:folder_path>/<path:file>/', ImageGetAPIview.as_view(), name="image_retrieve"),
-    path('<uuid:user_id>/<uuid:file_id>/delete/', FileDeleteView.as_view(), name='file_delete'),
-    path('<uuid:user_id>/folders/', FolderContentsView.as_view(), name="folder_contents_root"),
-    path('<uuid:user_id>/folders/<path:folder_path>/', FolderContentsView.as_view(), name="folder_contents"),
+    path('', include(router.urls)),
 ]
