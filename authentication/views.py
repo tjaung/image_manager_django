@@ -17,7 +17,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 @authentication_classes([])
 @permission_classes([])
 def login(request):
-    # Validate credentials...
+    # Validate credentials
     user = get_object_or_404(User, username=request.data['username'])
     if not user.check_password(request.data['password']):
         return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
@@ -30,14 +30,14 @@ def login(request):
     
     refresh_token = str(refresh)
     
-    # Set the refresh token as an HTTP‑only cookie.
+    # set the refresh token as HTTP‑only cookie
     res.set_cookie(
         key='access_token',
-        value=token.key,  # your JWT refresh token
+        value=token.key,
         httponly=True,
-        secure=False,         # Set to True if using HTTPS in production
-        samesite='Lax',       # or 'Strict'
-        max_age=7 * 24 * 60 * 60  # Persist for one week (in seconds)
+        secure=False,
+        samesite='Lax',
+        max_age=7 * 24 * 60 * 60
     )
     return res
 
@@ -104,28 +104,27 @@ def refresh_token(request):
     print("Serializer validated data:", serializer.validated_data)
     
     new_access = serializer.validated_data.get('access')
-    new_refresh = serializer.validated_data.get('refresh')  # May be None if ROTATE_REFRESH_TOKENS is False
+    new_refresh = serializer.validated_data.get('refresh')
 
     response = Response({'access': new_access}, status=status.HTTP_200_OK)
 
-    # Set or re-set the refresh token cookie.
-    # For development, set secure=False and add max_age.
+    # Set or re-set the refresh token cookie
     if new_refresh:
         response.set_cookie(
             key='refresh_token',
             value=new_refresh,
             httponly=True,
-            secure=False,    # Change to True only in production (HTTPS)
+            secure=False,
             samesite='Lax',
             max_age=7 * 24 * 60 * 60  # 1 week
         )
     else:
-        # Optionally, re-set the existing token with max_age even if it's not rotated.
+        # Reset the existing token with max_age even if it's not rotated
         response.set_cookie(
             key='refresh_token',
             value=refresh_token,
             httponly=True,
-            secure=False,    # Change to True in production
+            secure=False,
             samesite='Lax',
             max_age=7 * 24 * 60 * 60  # 1 week
         )

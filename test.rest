@@ -1,13 +1,13 @@
 ### Signup test
 
-POST http://127.0.0.1:8000/auth/signup 
+POST http://127.0.0.1:8000/api/auth/signup 
 Content-Type: application/json
 
 { "username": "test", "password": "Pass1234!" }
 
 ### Login test
 
-POST http://127.0.0.1:8000/auth/login 
+POST http://127.0.0.1:8000/api/auth/login 
 Content-Type: application/json
 
 { "username": "test", "password": "Pass1234!" }
@@ -15,13 +15,13 @@ Content-Type: application/json
 
 ### validate token test
 
-GET http://127.0.0.1:8000/auth/test_token 
+GET http://127.0.0.1:8000/api/auth/test_token 
 Content-Type: application/json
 Authorization: Token 365d8544c980d7db5c54b68f9c1bc245ef702d2f
 
 ### Create new folder in root
 
-POST http://127.0.0.1:8000/c656359c-58e4-44f2-a73e-d5b5ac7720bd/folders/create/
+POST http://127.0.0.1:8000/api/93f1f27a-a81b-4a50-864c-66a95bec92cf/folders
 Content-Type: application/json
 Authorization: Token 365d8544c980d7db5c54b68f9c1bc245ef702d2f
 
