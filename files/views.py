@@ -25,9 +25,10 @@ class FolderContentsView(ListAPIView):
         """
         Retrieve subfolders and files inside a specific folder.
         """
+        print("GET FOLDER")
         print(f"Authenticated User: {request.user}")
         print(f"User ID from URL: {user_id}")
-        print(f"Headers: {request.headers}")
+        # print(f"Headers: {request.headers}")
 
         user = request.user  # Get authenticated user
 
@@ -36,7 +37,7 @@ class FolderContentsView(ListAPIView):
             folder = get_object_or_404(Folder, owner_id=user, path=full_path)
         else:
             folder = None  # Root level
-        print(folder)
+        print("Getting folder: ", folder)
         subfolders = Folder.objects.filter(owner_id=user, parent_folder=folder)
         files = File.objects.filter(owner_id=user, folder=folder)
 
@@ -44,6 +45,8 @@ class FolderContentsView(ListAPIView):
             "folders": FolderSerializer(subfolders, many=True).data,
             "files": FileSerializer(files, many=True).data
         })
+    
+# http://127.0.0.1:8000/93f1f27a-a81b-4a50-864c-66a95bec92cf/folders/docs/images/
 
 
 from rest_framework.generics import CreateAPIView
@@ -312,6 +315,7 @@ class ImageGetAPIview(APIView):
     # serializer_class = FileSerializer
 
     def get(self, request, user_id, folder_path, file):
+        print("IMAGE GET")
         # Log received path components to debug
         file = file.replace("\/", "")
         full_path = f"/{folder_path}/{file}" if folder_path else f"/{file}"
@@ -327,7 +331,9 @@ class ImageGetAPIview(APIView):
             print("Database path:", f.path)
 
         # Fetch the file
+        print("fetching instance")
         file_instance = get_object_or_404(File, owner_id=user_id, path=full_path)
+        print("got instance, getting serializer")
         serializer = FileSerializer(file_instance)
         print("DONE")
         return Response(serializer.data, status=status.HTTP_200_OK)
