@@ -58,14 +58,13 @@ class FolderViewSet(viewsets.ViewSet):
         Optionally, you can pass a query parameter 'folder_path' to specify a parent folder.
         For example: POST /api/<user_id>/folders/?folder_path=docs/images
         """
-        print(request.data)
         # pull params
         user = request.user
         folder_name = request.data.get("name")
         
         if not folder_name:
             return Response({"error": "Folder name is required."}, status=status.HTTP_400_BAD_REQUEST)
-        print(folder_name)
+        
         # Retrieve folder_path from query parameters
         folder_path = request.query_params.get("folder_path")
         parent_folder = None
@@ -80,14 +79,15 @@ class FolderViewSet(viewsets.ViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             full_path = f"{parent_folder.path}/{folder_name.strip('/')}"
-        print(full_path)
+
+        # create folder
         folder, created = Folder.objects.get_or_create(
             owner_id=user,
             name=folder_name.strip('/'),
             path=full_path,
             parent_folder=parent_folder
         )
-        print("folder created: ", folder)
+
         return Response(FolderSerializer(folder).data, status=status.HTTP_201_CREATED)
 
     def update(self, request, user_id, pk=None):

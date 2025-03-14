@@ -14,7 +14,6 @@ class TestSetup(APITestCase):
             # email="test@example.com"
         )
         self.token = Token.objects.create(user=self.user)
-        # print(self.user)
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.token.key}')
         self.client.force_authenticate(user=self.user)
         self.folder_url = f"/api/{self.user.id}/folders/"
