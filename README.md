@@ -35,7 +35,7 @@ backend/
 
 ```
 git clone https://github.com/your-username/image-manager-backend.git
-cd image-manager-backend
+cd image_manager_django
 ```
 
 ### 2️⃣ Create a Virtual Environment
