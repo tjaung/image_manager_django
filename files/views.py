@@ -9,6 +9,7 @@ from authentication.models import User
 from .serializers import FolderSerializer, FileSerializer
 from rest_framework.decorators import action
 from .utils import analyzeFile
+from rest_framework.settings import api_settings
 
 class FolderViewSet(viewsets.ViewSet):
     """
@@ -20,8 +21,8 @@ class FolderViewSet(viewsets.ViewSet):
       - PUT/PATCH: Move or rename a folder.
       - DELETE: Delete a folder.
     """
+    authentication_classes = api_settings.DEFAULT_AUTHENTICATION_CLASSES
     permission_classes = [IsAuthenticated]
-    authentication_classes = [SessionAuthentication, TokenAuthentication]
 
 
     def list(self, request, user_id):
@@ -37,15 +38,15 @@ class FolderViewSet(viewsets.ViewSet):
             full_path = f"/{folder_path}"
             folder = get_object_or_404(Folder, owner_id=user, path=full_path)
         else:
-            folder = None  # Root level
+            folder = None  # root level
 
         # get all the folder contents and return them
-        subfolders = Folder.objects.filter(owner_id=user, parent_folder=folder)
-        files = File.objects.filter(owner_id=user, folder=folder)
-        return Response({
-            "folders": FolderSerializer(subfolders, many=True).data,
-            "files": FileSerializer(files, many=True).data
-        })
+        folder_contents = {
+            "folders": Folder.objects.filter(owner_id=user, parent_folder=folder),
+            "files": File.objects.filter(owner_id=user, folder=folder)
+        }
+        return Response(folder_contents)
+
 
     def create(self, request, user_id):
         """

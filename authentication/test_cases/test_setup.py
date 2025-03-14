@@ -16,6 +16,7 @@ class TestSetup(APITestCase):
         # Define API endpoint URLs
         self.signup_url = reverse("signup")
         self.login_url = reverse("login")
+        self.logout_url = reverse("logout")
         self.test_token_url = reverse("test_token")
 
         # Define test user data
