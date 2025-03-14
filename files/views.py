@@ -41,11 +41,15 @@ class FolderViewSet(viewsets.ViewSet):
             folder = None  # root level
 
         # get all the folder contents and return them
-        folder_contents = {
-            "folders": Folder.objects.filter(owner_id=user, parent_folder=folder),
-            "files": File.objects.filter(owner_id=user, folder=folder)
-        }
-        return Response(folder_contents)
+        # Get all subfolders and files
+        subfolders = Folder.objects.filter(owner_id=user, parent_folder=folder)
+        files = File.objects.filter(owner_id=user, folder=folder)
+
+        # ✅ Serialize objects before returning
+        return Response({
+            "folders": FolderSerializer(subfolders, many=True).data,
+            "files": FileSerializer(files, many=True).data
+        }, status=status.HTTP_200_OK)
 
 
     def create(self, request, user_id):
@@ -54,13 +58,14 @@ class FolderViewSet(viewsets.ViewSet):
         Optionally, you can pass a query parameter 'folder_path' to specify a parent folder.
         For example: POST /api/<user_id>/folders/?folder_path=docs/images
         """
+        print(request.data)
         # pull params
         user = request.user
         folder_name = request.data.get("name")
         
         if not folder_name:
             return Response({"error": "Folder name is required."}, status=status.HTTP_400_BAD_REQUEST)
-        
+        print(folder_name)
         # Retrieve folder_path from query parameters
         folder_path = request.query_params.get("folder_path")
         parent_folder = None
@@ -75,13 +80,14 @@ class FolderViewSet(viewsets.ViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             full_path = f"{parent_folder.path}/{folder_name.strip('/')}"
-        
+        print(full_path)
         folder, created = Folder.objects.get_or_create(
             owner_id=user,
             name=folder_name.strip('/'),
             path=full_path,
             parent_folder=parent_folder
         )
+        print("folder created: ", folder)
         return Response(FolderSerializer(folder).data, status=status.HTTP_201_CREATED)
 
     def update(self, request, user_id, pk=None):
