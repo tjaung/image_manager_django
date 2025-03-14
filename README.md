@@ -4,7 +4,7 @@ This is the backend service for the Image File Manager application, providing a 
 
 <strong>It is highly recommended to run the client side with this application.</strong>
 
-## 🚀 Features
+## Features
 
 - User authentication (Login, Signup, Logout, Token Refresh)
 
@@ -16,7 +16,7 @@ This is the backend service for the Image File Manager application, providing a 
 
 - API documentation available in the [client-side project](https://github.com/tjaung/image_manager_client).
 
-## 📎 Project Structure
+## Project Structure
 
 ```
 backend/
@@ -29,16 +29,16 @@ backend/
 │── README.md          # This file
 ```
 
-## 🛠 Installation & Setup
+## Installation & Setup
 
-### 1️⃣ Clone the Repository
+### 1️. Clone the Repository
 
 ```
 git clone https://github.com/your-username/image-manager-backend.git
 cd image_manager_django
 ```
 
-### 2️⃣ Create a Virtual Environment
+### 2️. Create a Virtual Environment
 
 ```
 # For Python 3
@@ -47,25 +47,25 @@ source env/bin/activate  # On macOS/Linux
 env\Scripts\activate     # On Windows
 ```
 
-### 3️⃣ Install Dependencies
+### 3️. Install Dependencies
 
 ```
 pip install -r requirements.txt
 ```
 
-### 4️⃣ Run Database Migrations
+### 4️. Run Database Migrations
 
 ```
 python3 manage.py migrate
 ```
 
-### 5️⃣ Create a Superuser (Optional, for Admin Panel)
+### 5️. Create a Superuser (Optional, for Admin Panel)
 
 ```
 python3 manage.py createsuperuser
 ```
 
-### 6️⃣ Start the Server
+### 6️. Start the Server
 
 ```
 python3 manage.py runserver  # or python manage.py runserver
@@ -77,7 +77,7 @@ The server will start at `http://127.0.0.1:8000/`. If it does not run at that po
 python3 manage.py runserver 127.0.0.1:8000 # this is the configuration for the client app
 ```
 
-## 🔥 Running Tests
+## Running Tests
 
 Run all tests using:
 
@@ -87,13 +87,13 @@ python3 manage.py test
 
 You can also test API requests using the provided `test.rest` file inside your VS Code REST Client or Postman.
 
-## 💼 REST API
+## REST API
 
 This Django backend provides a REST API that is documented **on the client-side project**. To learn more about available endpoints, request/response formats, and authentication methods, refer to the client-side documentation in the Documentation page inside of the app. Instructions on how to run the app are in the repo.
 
-🔗 **Client-Side Repository**: [Vue.js Frontend](https://github.com/tjaung/image_manager_client)
+**Client-Side Repository**: [Vue.js Frontend](https://github.com/tjaung/image_manager_client)
 
-## 🚀 Running the Full Application
+## Running the Full Application
 
 This backend is required to run the **Vue.js client-side** of the application. Ensure that this backend is running before starting the client.
 
@@ -104,7 +104,7 @@ cd image-manager-client/client
 npm run serve
 ```
 
-## ❓ Troubleshooting
+## Troubleshooting
 
 - If migrations fail, run `python3 manage.py makemigrations` before `migrate`
 
