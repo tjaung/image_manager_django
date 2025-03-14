@@ -2,7 +2,7 @@
 
 This is the backend service for the Image File Manager application, providing a RESTful API for managing user authentication, folders, and file storage. It is built using Django and Django REST Framework.
 
-<strong>It is highly recommended to run the client side with this application.</strong>
+<strong>Please use the [client application](https://github.com/tjaung/image_manager_client) along with this project.</strong>
 
 ## Features
 
