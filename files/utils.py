@@ -1,16 +1,13 @@
 from PIL import Image
 def analyzeFile(file):
     if file == None:
-        print("No file specified")
+        return
     
     image = Image.open(file)
     filename = image.filename
     width, height = image.size
     is_grayscale = isGrayscale(image)
     file_size = file.size
-    print(f"The file name is {filename}")
-    print(f"The image size is: {width}x{height} and file size is {file_size} bytes")
-    print(f"The image is grayscale: {is_grayscale}")
     return {
         'filename':filename,
         'width': width,
