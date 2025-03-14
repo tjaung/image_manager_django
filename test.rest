@@ -1,0 +1,51 @@
+### Signup test
+
+POST http://127.0.0.1:8000/api/auth/signup 
+Content-Type: application/json
+
+{ "username": "test", "password": "Pass1234!" }
+
+### Login test
+
+POST http://127.0.0.1:8000/api/auth/login 
+Content-Type: application/json
+
+{ "username": "test", "password": "Pass1234!" }
+
+
+### validate token test
+# http://127.0.0.1:8000/api/e73a1f80-b7dc-4827-b6cf-2a8ea0baa0a7/folders/?folder_path=src
+
+GET http://127.0.0.1:8000/api/auth/test_token 
+Content-Type: application/json
+Authorization: Token 365d8544c980d7db5c54b68f9c1bc245ef702d2f
+
+### refresh token
+GET http://127.0.0.1:8000/api/auth/refresh_token
+Content-Type: : application/json
+Authorization: Token 365d8544c980d7db5c54b68f9c1bc245ef702d2f
+### Create new folder in root
+
+POST http://127.0.0.1:8000/api/93f1f27a-a81b-4a50-864c-66a95bec92cf/folders/?folder_path=
+Content-Type: application/json
+Authorization: Token 365d8544c980d7db5c54b68f9c1bc245ef702d2f
+
+{"name": "test"}
+
+### Create new folder in sub dir
+POST http://127.0.0.1:8000/api/e73a1f80-b7dc-4827-b6cf-2a8ea0baa0a7/folders/?folder_path=test
+Content-Type: application/json
+Authorization: Token 365d8544c980d7db5c54b68f9c1bc245ef702d2f
+
+{"name": "Django"}
+
+### Get all users folders in root
+
+GET http://127.0.0.1:8000/api/c656359c-58e4-44f2-a73e-d5b5ac7720bd/folders
+Content-Type: application/json
+Authorization: Token 365d8544c980d7db5c54b68f9c1bc245ef702d2f
+
+### Get all folders in sub dir
+GET http://127.0.0.1:8000/api/93f1f27a-a81b-4a50-864c-66a95bec92cf/folders/folder_path=test
+Content-Type: application/json
+Authorization: Token 365d8544c980d7db5c54b68f9c1bc245ef702d2f
