@@ -1,6 +1,25 @@
 # Django Backend for Image File Manager
 
-This is the backend service for the Image File Manager application, providing a RESTful API for managing user authentication, folders, and file storage. It is built using Django and Django REST Framework.
+This is the backend service for the Image File Manager application, providing a RESTful API for managing user authentication, folders, and file storage. It is built using Django and Django REST Framework.  
+
+This was created as a take home assessment for a Software Engineer II position. Here is the prompt:  
+Please design and implement an image uploading and display service using Python and
+Django. This service o9ers the following features, all accessible only through REST API:
+
+1. Users can create folder by specifying a folder name.
+2. After creating a folder, users can upload images into it.
+3. Users can retrieve a list of folders.
+4. Users can retrieve a list of images within a folder.
+5. For each image, the system should be able to display the image and provide
+information, including:
+- Image size (width, height)
+- Image file size
+- Whether it’s a color or grayscale image
+- Upload date and time
+
+Please note that using AI assistance to implement the exercise is acceptable, but
+ensure you thoroughly understand all the details, as the discussion of this exercise
+could be part of a future interview.
 
 <strong>Please use the [client application](https://github.com/tjaung/image_manager_client) along with this project.</strong>
 
